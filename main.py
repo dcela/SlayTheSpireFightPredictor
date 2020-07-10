@@ -327,10 +327,11 @@ def process_runs(data_dir):
 
 def process_run(data):
     # We actually want to win or maximize our score, not just minimize damage
-    # This will also help account for higher-skilled players that are on A20
+    # This will also help account for higher-skilled players that are on A20 and thus probably making better choices
     score = data.get('score', 0)
     path_per_floor = data.get('path_per_floor')
-
+    damage_taken = data.get('damage_taken')
+    act_bosses = get_act_bosses(path_per_floor, damage_taken)
 
     battle_stats_by_floor = {battle_stat['floor']: battle_stat for battle_stat in data['damage_taken']}
     events_by_floor = {event_stat['floor']: event_stat for event_stat in data['event_choices']}
@@ -356,7 +357,7 @@ def process_run(data):
     for floor in range(0, data['floor_reached']):
         if floor in battle_stats_by_floor and floor != 1:
             fight_data = process_battle(data, battle_stats_by_floor[floor], potion_use_by_floor, current_deck,
-                                        current_relics, floor)
+                                        current_relics, floor, score, act_bosses)
             processed_fights.append(fight_data)
 
         if floor in relics_by_floor:
@@ -400,15 +401,14 @@ def process_run(data):
     else:
         return processed_fights
 
-def get_act_bosses(path_per_floor, damage_taken, is_victory):
-    num_floors_reached = len(path_per_floor) if is_victory else len(path_per_floor) + 1
+def get_act_bosses(path_per_floor, damage_taken):
     boss_in_floor = ['B' in floor for floor in path_per_floor]
     boss_floors = set(boss_in_floor.index(True))
-    act_bosses = []
+    act_bosses = {}
     for encounter in damage_taken:
         if encounter['floor'] in boss_floors:
-            act_bosses.append(encounter['enemies'])
-
+            act_bosses[encounter['floor']] = encounter['enemies']
+    return act_bosses
 
 def try_process_data(func):
     try:
@@ -418,7 +418,8 @@ def try_process_data(func):
         raise e
 
 
-def process_battle(master_data, battle_stat, potion_use_by_floor, current_deck, current_relics, floor):
+def process_battle(master_data, battle_stat, potion_use_by_floor, current_deck, current_relics, floor, score,
+                   act_bosses):
     fight_data = dict()
     fight_data['cards'] = list(current_deck)
     fight_data['relics'] = list(current_relics)
@@ -434,8 +435,18 @@ def process_battle(master_data, battle_stat, potion_use_by_floor, current_deck, 
     else:
         hp_change = master_data['current_hp_per_floor'][floor - 2] - master_data['current_hp_per_floor'][floor - 1]
     fight_data['damage_taken'] = hp_change
+    fight_data['next_boss'] = get_next_boss(floor, act_bosses)
+    fight_data['score'] = score
     return fight_data
 
+def get_next_boss(floor, act_bosses):
+    next_boss_floor = 999
+    next_boss = None
+    for boss_floor, boss in act_bosses.values():
+        if boss_floor - floor > 0 and boss_floor < next_boss_floor:
+            next_boss_floor = boss_floor
+            next_boss = boss
+    return next_boss
 
 def process_card_choice(card_choice_data, current_deck, current_relics):
     picked_card = card_choice_data['picked']
