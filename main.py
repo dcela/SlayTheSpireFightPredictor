@@ -401,14 +401,15 @@ def process_run(data):
     else:
         return processed_fights
 
+
 def get_act_bosses(path_per_floor, damage_taken):
-    boss_in_floor = ['B' in floor for floor in path_per_floor]
-    boss_floors = set(boss_in_floor.index(True))
+    boss_floors = set([floor + 1 for floor, event in enumerate(path_per_floor) if event == 'B'])
     act_bosses = {}
     for encounter in damage_taken:
         if encounter['floor'] in boss_floors:
             act_bosses[encounter['floor']] = encounter['enemies']
     return act_bosses
+
 
 def try_process_data(func):
     try:
@@ -439,14 +440,16 @@ def process_battle(master_data, battle_stat, potion_use_by_floor, current_deck, 
     fight_data['score'] = score
     return fight_data
 
+
 def get_next_boss(floor, act_bosses):
     next_boss_floor = 999
     next_boss = None
-    for boss_floor, boss in act_bosses.values():
+    for boss_floor, boss in act_bosses.items():
         if boss_floor - floor > 0 and boss_floor < next_boss_floor:
             next_boss_floor = boss_floor
             next_boss = boss
     return next_boss
+
 
 def process_card_choice(card_choice_data, current_deck, current_relics):
     picked_card = card_choice_data['picked']
@@ -776,7 +779,7 @@ def process_single_file(data_dir, filename):
 
 directory = 'SpireLogs Data'
 process_runs(directory)
-# process_single_file(directory, '1556873247.run')
+# process_single_file(directory, '1546376628.run')
 
 """
 # Keys
