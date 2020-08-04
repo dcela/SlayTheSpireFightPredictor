@@ -34,7 +34,7 @@ class Process:
         self.date = date.today()
 
     def get_file_list(self):
-        return [path for path in Path(self.run_directory).rglob('*.run')]
+        return list(Path(self.run_directory).rglob('*.json'))
 
     def get_logs(self):
         """

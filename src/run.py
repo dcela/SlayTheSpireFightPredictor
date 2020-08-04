@@ -232,10 +232,14 @@ class Run:
         campfire_data = self.stats_by_floor['campfire_choices_by_floor'].get(floor)
         if campfire_data:
             choice = campfire_data['key']
+            data = campfire_data.get('data')
             if choice == 'SMITH':
-                self.upgrade_card(campfire_data['data'])
+                self.upgrade_card(data)
             if choice == 'PURGE':
-                self.current_deck.remove(campfire_data['data'])
+                if data not in self.current_deck:
+                    logger.debug(f'{data} not in current deck, could not purge')
+                    raise InvalidRunError(f'{data} not in current deck, could not purge')
+                self.current_deck.remove(data)
 
     def upgrade_card(self, card_to_upgrade):
         # TODO: Handle cards that were obtained via alternative methods
